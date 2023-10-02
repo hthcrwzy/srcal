@@ -1,39 +1,25 @@
 mod args;
 mod calendar;
+mod display;
 mod weekday;
-use chrono::{Datelike, NaiveDate};
+use std::process::exit;
+
+use chrono::Month;
 use clap::Parser;
 
 fn main() {
-    let _ = args::Args::parse();
+    let args = args::Args::parse();
 
-    let calendar = calendar::Calendar::new();
-    println!("{} {}", calendar.get_month_with_string(), calendar.year);
-
-    let mut weekday = weekday::Weekday::new();
-    for _ in 0..7 {
-        print!("{} ", weekday.weekday);
-        weekday.next();
-    }
-    println!();
-
-    let skip = calendar
-        .get_weekday_of_first_of_this_month()
-        .num_days_from_sunday();
-    print!("{}", "    ".repeat(skip as usize));
-    let mut counter = skip;
-
-    let mut current_date =
-        NaiveDate::from_ymd_opt(calendar.year, calendar.month, calendar.today).unwrap();
-
-    while current_date.month() == calendar.month {
-        counter += 1;
-        print!("{:>3} ", current_date.day0() + 1);
-        current_date = current_date.succ_opt().unwrap();
-
-        if counter % 7 == 0 {
-            println!()
+    let calendar = if args.month.is_none() {
+        calendar::Calendar::now()
+    } else {
+        match Month::try_from(args.month.unwrap() as u8) {
+            Ok(month) => calendar::Calendar::from_month(month),
+            Err(_) => {
+                eprintln!("Invalid month number specified.");
+                exit(1);
+            }
         }
-    }
-    println!();
+    };
+    calendar.print_calendar(args.hide_highlight);
 }
